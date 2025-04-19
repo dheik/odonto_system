@@ -8,16 +8,45 @@ import '../styles/Header.css';
 function Header() {
     const navigate = useNavigate();
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [userData, setUserData] = useState(null);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                setUserData(parsedUser);
+            } catch (error) {
+                console.error('Erro ao carregar dados do usuário:', error);
+            }
+        }
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setUserData(null);
+        setShowUserMenu(false);
         navigate('/login');
     };
 
     const toggleUserMenu = () => {
         setShowUserMenu(!showUserMenu);
     };
+
+    // Fecha o menu quando clicar fora dele
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showUserMenu && !event.target.closest('.user-menu-container')) {
+                setShowUserMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showUserMenu]);
 
     return (
         <header className="header">
@@ -45,7 +74,14 @@ function Header() {
                         {showUserMenu && (
                             <div className="user-dropdown">
                                 <div className="user-info">
-                                    <span className="user-name">Menu do Usuário</span>
+                                    {userData ? (
+                                        <>
+                                            <span className="user-name">Dr(a). {userData.username}</span>
+                                            <span className="user-email">{userData.email}</span>
+                                        </>
+                                    ) : (
+                                        <span className="user-name">Usuário</span>
+                                    )}
                                 </div>
                                 <div className="dropdown-divider"></div>
                                 <button onClick={handleLogout} className="logout-button">

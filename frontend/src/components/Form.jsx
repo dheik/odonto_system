@@ -14,6 +14,16 @@ function Form({ route, method }) {
 
     const name = method === "login" ? "Login" : "Cadastrar";
 
+    const fetchUserData = async () => {
+        try {
+            const response = await api.get('/api/user/profile/');
+            return response.data;
+        } catch (error) {
+            console.error('Erro ao buscar dados do usuário:', error);
+            return null;
+        }
+    };
+
     const handleSubmit = async (e) => {
         setLoading(true);
         e.preventDefault();
@@ -23,18 +33,37 @@ function Form({ route, method }) {
             if (method === "register") {
                 postData.email = email;
             }
+            
+            // Login ou registro
             const res = await api.post(route, postData);
+            
             if (method === "login") {
+                // Salvar tokens
                 localStorage.setItem(ACCESS_TOKEN, res.data.access);
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-                navigate("/")
+
+                // Buscar dados completos do usuário
+                const userData = await fetchUserData();
+                
+                if (userData) {
+                    localStorage.setItem('user', JSON.stringify(userData));
+                } else {
+                    // Fallback para dados básicos se a busca falhar
+                    localStorage.setItem('user', JSON.stringify({
+                        username: username,
+                        email: email || `${username}@exemplo.com`
+                    }));
+                }
+
+                navigate("/");
             } else {
-                navigate("/login")
+                navigate("/login");
             }
         } catch (error) {
-            alert(error)
+            console.error('Erro:', error);
+            alert(error.response?.data?.detail || 'Erro ao processar a requisição');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     };
 
@@ -47,6 +76,7 @@ function Form({ route, method }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Username"
+                required
             />
             {method === "register" && (
                 <input
@@ -55,6 +85,7 @@ function Form({ route, method }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email"
+                    required
                 />
             )}
             <input
@@ -63,6 +94,7 @@ function Form({ route, method }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Senha"
+                required
             />
             {loading && <LoadingIndicator />}
             <button className="form-button" type="submit">
@@ -72,4 +104,4 @@ function Form({ route, method }) {
     );
 }
 
-export default Form
+export default Form;
